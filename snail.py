@@ -1,7 +1,71 @@
-import pygame
-import sys
+import time
+import os
 
-def spiral_order_with_positions(matrix):
+def clear_screen():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+
+def get_arrow(curr_pos, next_pos):
+    curr_row, curr_col = curr_pos
+    next_row, next_col = next_pos
+    
+    if next_col > curr_col:
+        return '→'
+    elif next_col < curr_col:
+        return '←'
+    elif next_row > curr_row:
+        return '↓'
+    elif next_row < curr_row:
+        return '↑'
+    return ' '
+
+
+def print_matrix_animated(matrix, positions, current_index):
+    
+    clear_screen()
+    n = len(matrix)
+    
+    # Build arrow matrix
+    arrows = [[' ' for _ in range(n)] for _ in range(n)]
+    for i in range(min(current_index, len(positions) - 1)):
+        if i < len(positions) - 1:
+            arrows[positions[i][0]][positions[i][1]] = get_arrow(positions[i], positions[i + 1])
+    
+    if current_index > 0 and current_index <= len(positions):
+        last_idx = current_index - 1
+        arrows[positions[last_idx][0]][positions[last_idx][1]] = '●'
+    
+    print("\n" + "╔" + "═" * 58 + "╗")
+    print("║" + "SNAIL MATRIX TRAVERSAL".center(58) + "║")
+    print("╚" + "═" * 58 + "╝\n")
+    
+    # Print matrix with arrows directly on it
+    print("  ┌" + "─────┬" * (n - 1) + "─────┐")
+    for i in range(n):
+        row_str = "  │"
+        for j in range(n):
+            row_str += f" {matrix[i][j]:2}{arrows[i][j]} │"
+        print(row_str)
+        if i < n - 1:
+            print("  ├" + "─────┼" * (n - 1) + "─────┤")
+        else:
+            print("  └" + "─────┴" * (n - 1) + "─────┘")
+    
+    # Build result
+    result = []
+    for idx in range(current_index):
+        if idx < len(positions):
+            row, col = positions[idx]
+            result.append(matrix[row][col])
+    
+    print()
+    print(f"  Result: {result}")
+    print(f"  Progress: {current_index}/{len(positions)}")
+    print()
+    print("  Legend: → ↓ ← ↑ = Direction  |  ● = Current position")
+
+
+def spiral_order_animated(matrix, delay=0.5):
     
     if not matrix or not matrix[0]:
         return []
@@ -31,131 +95,22 @@ def spiral_order_with_positions(matrix):
                 positions.append((row, left))
             left += 1
     
-    return positions
-
-
-def animate_spiral_matrix(matrix):
+    result = []
     
-    pygame.init()
+    for idx in range(len(positions) + 1):
+        print_matrix_animated(matrix, positions, idx)
+        time.sleep(delay)
     
-    n = len(matrix)
-    cell_size = 150
-    margin = 80
-    width = n * cell_size + 2 * margin
-    height = n * cell_size + 2 * margin + 150
+    print("\n  ✓ TRAVERSAL COMPLETE!\n")
     
-    screen = pygame.display.set_mode((width, height))
-    pygame.display.set_caption("Snail Matrix Traversal Animation")
+    for pos in positions:
+        result.append(matrix[pos[0]][pos[1]])
     
-    WHITE = (255, 255, 255)
-    BLACK = (0, 0, 0)
-    GRAY = (200, 200, 200)
-    BLUE = (100, 150, 255)
-    GREEN = (100, 255, 150)
-    RED = (255, 100, 100)
-    
-    font_large = pygame.font.Font(None, 64)
-    font_small = pygame.font.Font(None, 36)
-    
-    positions = spiral_order_with_positions(matrix)
-    visited = set()
-    current_index = 0
-    
-    clock = pygame.time.Clock()
-    running = True
-    paused = False
-    speed = 1
-    auto_play = True
-    
-    while running:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    paused = not paused
-                elif event.key == pygame.K_r:
-                    current_index = 0
-                    visited = set()
-                elif event.key == pygame.K_UP:
-                    speed = min(speed + 1, 10)
-                elif event.key == pygame.K_DOWN:
-                    speed = max(speed - 1, 1)
-        
-        screen.fill(WHITE)
-        
-        for i in range(n):
-            for j in range(n):
-                x = margin + j * cell_size
-                y = margin + i * cell_size
-                
-                if (i, j) in visited:
-                    color = GREEN
-                elif current_index < len(positions) and positions[current_index] == (i, j):
-                    color = RED
-                else:
-                    color = GRAY
-                
-                pygame.draw.rect(screen, color, (x, y, cell_size, cell_size))
-                pygame.draw.rect(screen, BLACK, (x, y, cell_size, cell_size), 4)
-                
-                text = font_large.render(str(matrix[i][j]), True, BLACK)
-                text_rect = text.get_rect(center=(x + cell_size // 2, y + cell_size // 2))
-                screen.blit(text, text_rect)
-        
-        if current_index > 0:
-            for idx in range(current_index):
-                if idx < len(positions) - 1:
-                    row1, col1 = positions[idx]
-                    row2, col2 = positions[idx + 1]
-                    
-                    x1 = margin + col1 * cell_size + cell_size // 2
-                    y1 = margin + row1 * cell_size + cell_size // 2
-                    x2 = margin + col2 * cell_size + cell_size // 2
-                    y2 = margin + row2 * cell_size + cell_size // 2
-                    
-                    pygame.draw.line(screen, BLUE, (x1, y1), (x2, y2), 6)
-        
-        result_text = "Result: ["
-        for idx in range(current_index):
-            if idx < len(positions):
-                row, col = positions[idx]
-                result_text += str(matrix[row][col])
-                if idx < current_index - 1:
-                    result_text += ", "
-        result_text += "]"
-        
-        result_surface = font_small.render(result_text, True, BLACK)
-        screen.blit(result_surface, (margin, height - 120))
-        
-        controls = f"SPACE: Pause/Play | R: Restart | UP/DOWN: Speed ({speed})"
-        controls_surface = font_small.render(controls, True, BLACK)
-        screen.blit(controls_surface, (margin, height - 80))
-        
-        progress = f"Progress: {current_index}/{len(positions)}"
-        progress_surface = font_small.render(progress, True, BLACK)
-        screen.blit(progress_surface, (margin, height - 40))
-        
-        if paused:
-            pause_text = font_large.render("PAUSED", True, RED)
-            screen.blit(pause_text, (width // 2 - 100, 10))
-        
-        pygame.display.flip()
-        
-        if not paused and current_index < len(positions):
-            visited.add(positions[current_index])
-            current_index += 1
-            clock.tick(speed)
-        elif current_index >= len(positions):
-            clock.tick(30)
-        else:
-            clock.tick(30)
-    
-    pygame.quit()
+    return result
 
 
 def can_split_consecutive(ch):
-   
+    
     n = len(ch)
     
     for first_len in range(1, n // 2 + 1):
@@ -193,9 +148,10 @@ def get_sequence_if_valid(ch, start_num):
 
 
 if __name__ == "__main__":
-    print("\n" + "=" * 60)
+    clear_screen()
+    print("\n" + "═" * 60)
     print("PROBLEM 1: SNAIL MATRIX TRAVERSAL")
-    print("=" * 60)
+    print("═" * 60)
     print("\nChoose a matrix to visualize:")
     print("1. 3x3 Matrix")
     print("2. 4x4 Matrix")
@@ -209,6 +165,7 @@ if __name__ == "__main__":
             [8, 9, 4],
             [7, 6, 5]
         ]
+        delay = 0.5
     elif choice == "2":
         matrix = [
             [1, 2, 3, 4],
@@ -216,6 +173,7 @@ if __name__ == "__main__":
             [11, 16, 15, 6],
             [10, 9, 8, 7]
         ]
+        delay = 0.4
     elif choice == "3":
         matrix = [
             [1, 2, 3, 4, 5],
@@ -224,6 +182,7 @@ if __name__ == "__main__":
             [14, 23, 22, 21, 8],
             [13, 12, 11, 10, 9]
         ]
+        delay = 0.3
     else:
         print("Invalid choice. Using 3x3 matrix.")
         matrix = [
@@ -231,19 +190,25 @@ if __name__ == "__main__":
             [8, 9, 4],
             [7, 6, 5]
         ]
+        delay = 0.5
     
-    print("\nThe animation will start...")
-    print("Controls:")
-    print("  SPACE - Pause/Resume")
-    print("  R - Restart")
-    print("  UP/DOWN - Adjust speed")
-    print("\nClose the window when done to continue to Problem 2")
+    print("\nStarting animation in 3 seconds...")
+    time.sleep(1)
+    print("3...")
+    time.sleep(1)
+    print("2...")
+    time.sleep(1)
+    print("1...")
+    time.sleep(1)
     
-    animate_spiral_matrix(matrix)
+    result = spiral_order_animated(matrix, delay)
     
-    print("\n" + "=" * 60)
+    input("\nPress Enter to continue to Problem 2...")
+    
+    clear_screen()
+    print("\n" + "═" * 60)
     print("PROBLEM 2: CONSECUTIVE INCREASING NUMBERS")
-    print("=" * 60)
+    print("═" * 60)
     
     test_cases = ['99100', '979899100101', '123', '12', '100', '010203', '1234', '91011']
     
@@ -256,3 +221,4 @@ if __name__ == "__main__":
         print("-" * 60)
     
     print("\nProgram completed!")
+    input("\nPress Enter to exit...")
