@@ -1,8 +1,56 @@
 import time
 import os
+from PIL import Image
+import pytesseract
 
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
+
+
+def extract_matrix_from_image(image_path):
+    
+    try:
+        img = Image.open(image_path)
+        
+        img = img.convert('L')
+        
+        text = pytesseract.image_to_string(img, config='--psm 6')
+        
+        lines = text.strip().split('\n')
+        matrix = []
+        
+        for line in lines:
+            numbers = []
+            tokens = line.split()
+            for token in tokens:
+                try:
+                    num = int(token)
+                    numbers.append(num)
+                except:
+                    pass
+            if numbers:
+                matrix.append(numbers)
+        
+        if matrix and len(matrix) == len(matrix[0]):
+            return matrix
+        else:
+            return None
+            
+    except Exception as e:
+        print(f"Error extracting matrix: {e}")
+        return None
+
+
+def manual_extract_from_image():
+    
+    matrix = [
+        [1, 2, 3, 4, 5],
+        [16, 17, 18, 19, 6],
+        [15, 24, 25, 20, 7],
+        [14, 23, 22, 21, 8],
+        [13, 12, 11, 10, 9]
+    ]
+    return matrix
 
 
 def get_arrow(curr_pos, next_pos):
@@ -20,36 +68,40 @@ def get_arrow(curr_pos, next_pos):
     return ' '
 
 
-def print_matrix_animated(matrix, positions, current_index):
+def print_matrix_with_spiral_arrows(matrix, positions, current_index):
     
     clear_screen()
     n = len(matrix)
     
-    # Build arrow matrix
-    arrows = [[' ' for _ in range(n)] for _ in range(n)]
-    for i in range(min(current_index, len(positions) - 1)):
+    arrows = [['' for _ in range(n)] for _ in range(n)]
+    for i in range(min(current_index, len(positions))):
         if i < len(positions) - 1:
-            arrows[positions[i][0]][positions[i][1]] = get_arrow(positions[i], positions[i + 1])
-    
-    if current_index > 0 and current_index <= len(positions):
-        last_idx = current_index - 1
-        arrows[positions[last_idx][0]][positions[last_idx][1]] = '●'
+            row, col = positions[i]
+            arrows[row][col] = get_arrow(positions[i], positions[i + 1])
+        else:
+            row, col = positions[i]
+            arrows[row][col] = ''
     
     print("\n" + "╔" + "═" * 58 + "╗")
     print("║" + "SNAIL MATRIX TRAVERSAL".center(58) + "║")
     print("╚" + "═" * 58 + "╝\n")
     
-    # Print matrix with arrows directly on it
-    print("  ┌" + "─────┬" * (n - 1) + "─────┐")
+    # Print matrix with thick borders like the image
+    print("  ┏" + "━━━━━┳" * (n - 1) + "━━━━━┓")
+    
     for i in range(n):
-        row_str = "  │"
+        row_str = "  ┃"
         for j in range(n):
-            row_str += f" {matrix[i][j]:2}{arrows[i][j]} │"
+            if arrows[i][j]:
+                row_str += f" {matrix[i][j]:2}{arrows[i][j]} ┃"
+            else:
+                row_str += f" {matrix[i][j]:2}  ┃"
         print(row_str)
+        
         if i < n - 1:
-            print("  ├" + "─────┼" * (n - 1) + "─────┤")
+            print("  ┣" + "━━━━━╋" * (n - 1) + "━━━━━┫")
         else:
-            print("  └" + "─────┴" * (n - 1) + "─────┘")
+            print("  ┗" + "━━━━━┻" * (n - 1) + "━━━━━┛")
     
     # Build result
     result = []
@@ -59,14 +111,14 @@ def print_matrix_animated(matrix, positions, current_index):
             result.append(matrix[row][col])
     
     print()
-    print(f"  Result: {result}")
+    print(f"  Spiral Order: {result}")
     print(f"  Progress: {current_index}/{len(positions)}")
     print()
-    print("  Legend: → ↓ ← ↑ = Direction  |  ● = Current position")
+    print("  Arrows show the snail's path: → ↓ ← ↑")
 
 
-def spiral_order_animated(matrix, delay=0.5):
-    
+def spiral_order_animated(matrix, delay=0.3):
+   
     if not matrix or not matrix[0]:
         return []
     
@@ -95,14 +147,13 @@ def spiral_order_animated(matrix, delay=0.5):
                 positions.append((row, left))
             left += 1
     
-    result = []
-    
     for idx in range(len(positions) + 1):
-        print_matrix_animated(matrix, positions, idx)
+        print_matrix_with_spiral_arrows(matrix, positions, idx)
         time.sleep(delay)
     
     print("\n  ✓ TRAVERSAL COMPLETE!\n")
     
+    result = []
     for pos in positions:
         result.append(matrix[pos[0]][pos[1]])
     
@@ -110,7 +161,7 @@ def spiral_order_animated(matrix, delay=0.5):
 
 
 def can_split_consecutive(ch):
-    
+   
     n = len(ch)
     
     for first_len in range(1, n // 2 + 1):
@@ -152,45 +203,24 @@ if __name__ == "__main__":
     print("\n" + "═" * 60)
     print("PROBLEM 1: SNAIL MATRIX TRAVERSAL")
     print("═" * 60)
-    print("\nChoose a matrix to visualize:")
-    print("1. 3x3 Matrix")
-    print("2. 4x4 Matrix")
-    print("3. 5x5 Matrix")
     
-    choice = input("\nEnter choice (1-3): ")
+    print("\nExtracting matrix from uploaded image...")
     
-    if choice == "1":
-        matrix = [
-            [1, 2, 3],
-            [8, 9, 4],
-            [7, 6, 5]
-        ]
-        delay = 0.5
-    elif choice == "2":
-        matrix = [
-            [1, 2, 3, 4],
-            [12, 13, 14, 5],
-            [11, 16, 15, 6],
-            [10, 9, 8, 7]
-        ]
-        delay = 0.4
-    elif choice == "3":
-        matrix = [
-            [1, 2, 3, 4, 5],
-            [16, 17, 18, 19, 6],
-            [15, 24, 25, 20, 7],
-            [14, 23, 22, 21, 8],
-            [13, 12, 11, 10, 9]
-        ]
-        delay = 0.3
-    else:
-        print("Invalid choice. Using 3x3 matrix.")
-        matrix = [
-            [1, 2, 3],
-            [8, 9, 4],
-            [7, 6, 5]
-        ]
-        delay = 0.5
+    image_path = "/mnt/user-data/uploads/1771111765811_matrix.png"
+    
+    matrix = extract_matrix_from_image(image_path)
+    
+    if matrix is None:
+        print("OCR extraction failed. Using manual extraction...")
+        matrix = manual_extract_from_image()
+    
+    print("\nExtracted Matrix:")
+    for row in matrix:
+        print("  ", row)
+    
+    print(f"\nMatrix size: {len(matrix)}x{len(matrix[0])}")
+    
+    input("\nPress Enter to start animation...")
     
     print("\nStarting animation in 3 seconds...")
     time.sleep(1)
@@ -201,7 +231,9 @@ if __name__ == "__main__":
     print("1...")
     time.sleep(1)
     
-    result = spiral_order_animated(matrix, delay)
+    result = spiral_order_animated(matrix, delay=0.3)
+    
+    print(f"\nFinal Spiral Result: {result}")
     
     input("\nPress Enter to continue to Problem 2...")
     
