@@ -1,7 +1,5 @@
 Problem Solving Project
-Overview
 This project contains solutions to two algorithmic problems implemented in Python.
-Problems
 1. Snail Matrix Traversal
 Traverses a square n×n matrix in clockwise spiral order, starting from the top-left corner and moving inward layer by layer.
 Algorithm: Uses four boundary pointers to track traversal limits. Moves right, down, left, up in sequence while shrinking boundaries after each direction.
